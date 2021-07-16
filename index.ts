@@ -70,6 +70,9 @@ const getData = async (id: number, blockNumber?: number) => {
   const amount0 = parseFloat(positionHelper.amount0.toFixed(6));
   const amount1 = parseFloat(positionHelper.amount1.toFixed(6));
 
+  const totalFeeValue = fees0 * price0 + fees1 * price1;
+  const totalValueExcludingFees = amount0 * price0 + amount1 * price1;
+
   // get ETH price data
   const ethPrice = await getEthPrice(blockNumber);
 
@@ -81,13 +84,13 @@ const getData = async (id: number, blockNumber?: number) => {
     price1: price1,
     fees1: fees1,
     date: new Date(parseInt(position.token1.tokenDayData[0].date) * 1000).toDateString(),
-    totalFeeValue: fees0 * price0 + fees1 * price1,
+    totalFeeValue: totalFeeValue,
     amount0: amount0,
     amount1: amount1,
-    totalValueExcludingFees: amount0 * price0 + amount1 * price1,
-    totalValueIncludingFees: amount0 * price0 + amount1 * price1 + fees0 * price0 + fees1 * price1,
-    totalValueExcludingFees_eth: (amount0 * price0 + amount1 * price1) / ethPrice,
-    totalValueIncludingFees_eth: (amount0 * price0 + amount1 * price1 + fees0 * price0 + fees1 * price1) / ethPrice,
+    totalValueExcludingFees: totalValueExcludingFees,
+    totalValueIncludingFees: totalValueExcludingFees + totalFeeValue,
+    totalValueExcludingFees_eth: totalValueExcludingFees / ethPrice,
+    totalValueIncludingFees_eth: (totalValueExcludingFees + totalFeeValue) / ethPrice,
     ethPrice: ethPrice
   }
 }
@@ -105,14 +108,9 @@ const getSqrtRatioAtTick = (tick: number): BigNumber => {
 }
 
 const getAmount0Delta = (liquidity: BigNumber, sqrtRatioA: BigNumber, sqrtRatioB: BigNumber): BigNumber => {
-  //return liquidity.multipliedBy((sqrtRatioB.minus(sqrtRatioA)).minus(sqrtRatioB.multipliedBy(sqrtRatioA)));
-
-  //return liquidity.dividedBy(sqrtRatioB.squareRoot()).minus(liquidity.dividedBy(sqrtRatioA.squareRoot()))
-
   let [ sqrtRatioAdjustedA, sqrtRatioAdjustedB ] = [ sqrtRatioA, sqrtRatioB]
   if (sqrtRatioA.gt(sqrtRatioB)) [ sqrtRatioAdjustedA, sqrtRatioAdjustedB ] = [ sqrtRatioB, sqrtRatioA ];
 
-  
   const x96 = new BigNumber(2).pow(new BigNumber(96));
   const a = liquidity.multipliedBy(x96);
   const b = sqrtRatioAdjustedB.minus(sqrtRatioAdjustedA);
